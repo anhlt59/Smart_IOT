@@ -361,6 +361,7 @@ resources:
 plugins:
   - serverless-python-requirements
   - serverless-plugin-tracing
+  - serverless-offline
 
 custom:
   pythonRequirements:
@@ -370,6 +371,13 @@ custom:
   tracing:
     apiGateway: true
     lambda: true
+
+  serverless-offline:
+    httpPort: 3000
+    websocketPort: 3001
+    lambdaPort: 3002
+    noPrependStageInUrl: true
+    noAuth: true
 
 package:
   exclude:

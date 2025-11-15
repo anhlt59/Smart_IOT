@@ -1,0 +1,31 @@
+{
+  "name": "iot-monitoring-backend",
+  "version": "1.0.0",
+  "description": "IoT Monitoring Backend with Serverless Framework",
+  "main": "index.js",
+  "scripts": {
+    "dev": "serverless offline start --stage dev",
+    "deploy:dev": "serverless deploy --stage dev",
+    "deploy:prod": "serverless deploy --stage prod",
+    "remove:dev": "serverless remove --stage dev",
+    "remove:prod": "serverless remove --stage prod",
+    "test": "pytest tests/",
+    "lint": "flake8 src/",
+    "format": "black src/",
+    "type-check": "mypy src/"
+  },
+  "keywords": [
+    "iot",
+    "serverless",
+    "aws",
+    "lambda"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless": "^3.38.0",
+    "serverless-offline": "^13.3.2",
+    "serverless-python-requirements": "^6.1.0",
+    "serverless-plugin-tracing": "^2.0.0"
+  }
+}
