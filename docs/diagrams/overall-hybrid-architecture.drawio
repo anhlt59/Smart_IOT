@@ -1,0 +1,102 @@
+<mxfile host="app.diagrams.net" modified="2026-07-22T16:20:00.000Z" agent="architecture-design" version="24.0.0">
+  <diagram id="hybrid-arch" name="Overall Hybrid Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="OVERALL HYBRID ARCHITECTURE — INDUSTRIAL IOT PLATFORM (Multi-site · Production)" style="text;html=1;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="15" width="1200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="users" value="NGƯỜI DÙNG — Web · Mobile · Open API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="58" width="320" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cloud" value="VNPT CLOUD PLATFORM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="100" y="120" width="1200" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="region1" value="REGION 1 (Hà Nội) — PRIMARY" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="130" y="160" width="830" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="ingress1" value="INGRESS — LB L7 + WAAP (HTTPS :443) · LB L4 mTLS (:8883 MQTT) · VPN / MPLS Gateway · API Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="150" y="200" width="790" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="vks" value="VNPT KUBERNETES (VKS) — Core Services multi-tenant (Go) · EMQX Cluster ×3 · Kafka consumers · ClickHouse (time-series) · Keycloak (IAM) · Temporal · LGTM Observability · Vault (PKI/Secrets)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="150" y="270" width="480" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="managed" value="MANAGED SERVICES — PostgreSQL HA · Redis · Kafka RF3 · Object Storage (S3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="650" y="270" width="290" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="region2" value="REGION 2 (HCM) — WARM STANDBY&#10;&#10;PG replica async · Object Storage replication · backup immutable · IaC dựng lại full stack&#10;&#10;RPO 5–15 phút · RTO 1–2 giờ" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontColor=#666666;fontSize=11;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="990" y="160" width="290" height="270" as="geometry" />
+        </mxCell>
+
+        <mxCell id="conn" value="HYBRID CONNECTIVITY — không mở inbound từ Internet vào site" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="500" width="1200" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="conn1" value="VNPT MPLS / L3VPN — PRIMARY · private peering tới VNPT Cloud · QoS · SLA telco · 20–50 Mbps/site" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="545" width="540" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="conn2" value="Internet FTTH + IPsec VPN — BACKUP · SD-WAN auto-failover (FortiGate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="130" y="615" width="540" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="conn3" value="GIAO THỨC — UPLINK: MQTT/TLS :8883 mTLS (telemetry · event · alarm · heartbeat · backfill) · HTTPS :443 (backup · metrics/logs · snapshot pre-signed URL) — DOWNLINK: MQTT (config · OTA ring rollout · remote command whitelist · 2FA · ack ≤ 5s)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="545" width="570" height="115" as="geometry" />
+        </mxCell>
+
+        <mxCell id="site1" value="KCN SITE #1 — ĐỒNG VĂN III (FortiGate 80F · tự trị khi mất WAN)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="730" width="400" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="s1a" value="DMZ — EMQX Bridge · Sync Uplink · MediaMTX Relay" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="120" y="772" width="360" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="s1b" value="ON-PREM PLATFORM (Docker Compose — KHÔNG K8s/K3s) — EMQX · Rule Engine · Local API/Dashboard · PostgreSQL · TimescaleDB · Redis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="120" y="835" width="360" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="s1c" value="EDGE GATEWAY ECU-1051 (buffer 30 ngày) ← PLC · RTU · Sensors · Camera (OT read-only)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="120" y="920" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="site2" value="KCN SITE #2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="530" y="730" width="400" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="s2a" value="Cùng SITE BLUEPRINT (Git): DMZ → Platform (Docker Compose) → Edge Gateway → OT&#10;&#10;Nhân bản cấu hình có version · onboarding cloud-side ≤ 1 ngày (Temporal workflow) · cert riêng per-site" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="550" y="780" width="360" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="siteN" value="KCN SITE #N&#10;&#10;··· nhân bản theo blueprint ···&#10;&#10;quy mô mục tiêu 10–30 KCN (cell-ready cho 100+)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#b85450;fontColor=#666666;verticalAlign=top;spacingTop=20;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="960" y="730" width="400" height="270" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="LEGEND — Mũi tên liền ĐEN (↑): Telemetry · Events · Alarms · Backup lên Cloud · Mũi tên đứt ĐỎ (↓): Configuration · OTA · Remote Command xuống Site · Khung đứt: standby / nhân bản · Mỗi site vận hành độc lập khi mất kết nối (PLC fail-safe + gateway buffer 30 ngày)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1025" width="1260" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eu1" value="HTTPS · OIDC · 2FA" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0.17;entryY=0;" edge="1" parent="1" source="users" target="cloud">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er1" value="async replication · backup" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;dashed=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="region1" target="region2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eup" value="Telemetry · Events · Alarms (MQTT mTLS) — Backup · Observability (HTTPS)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=11;fontStyle=1;strokeWidth=2;exitX=0.3;exitY=0;entryX=0.3;entryY=1;" edge="1" parent="1" source="conn" target="cloud">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edown" value="Configuration · OTA · Remote Command (whitelist · 2FA · audit)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=11;fontStyle=1;dashed=1;strokeColor=#cc0000;fontColor=#cc0000;strokeWidth=2;exitX=0.72;exitY=1;entryX=0.72;entryY=0;" edge="1" parent="1" source="cloud" target="conn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es1u" value="↑ uplink" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;strokeWidth=2;exitX=0.4;exitY=0;entryX=0.17;entryY=1;" edge="1" parent="1" source="site1" target="conn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es1d" value="↓ downlink" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;dashed=1;strokeColor=#cc0000;fontColor=#cc0000;exitX=0.28;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="conn" target="site1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;strokeWidth=2;startArrow=classic;startFill=1;exitX=0.5;exitY=0;entryX=0.52;entryY=1;" edge="1" parent="1" source="site2" target="conn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="esN" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;strokeWidth=2;startArrow=classic;startFill=1;dashed=1;strokeColor=#999999;exitX=0.5;exitY=0;entryX=0.88;entryY=1;" edge="1" parent="1" source="siteN" target="conn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

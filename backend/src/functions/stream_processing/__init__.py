@@ -1,1 +1,0 @@
-# Stream processing Lambda handlers

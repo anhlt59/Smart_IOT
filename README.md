@@ -1,288 +1,115 @@
-# IoT Monitoring Application
+# Industrial IoT Platform — Smart KCN
 
-A full-stack IoT monitoring application with a Vue.js frontend and AWS Lambda backend (running locally with serverless-offline).
+**Nền tảng quản lý vận hành tập trung cho khu công nghiệp thông minh (Industrial IoT Platform)**, hỗ trợ multi-site, multi-tenant. Kiến trúc Hybrid: On-Premise Platform tại từng KCN (tự trị khi mất Internet) + Cloud Platform trên VNPT Cloud.
 
-## Architecture
+**Trạng thái dự án:** Giai đoạn thiết kế kiến trúc ✓ · Chưa triển khai code.
 
-### Backend
-- **Framework**: Serverless Framework with AWS Lambda (Python 3.11)
-- **Dependency Management**: Poetry
-- **Architecture**: Hexagonal Architecture pattern
-- **Local Development**: serverless-offline for local API Gateway simulation
-- **API**: REST API with CORS enabled
+---
 
-### Frontend
-- **Framework**: Vue 3 + TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS
-- **State Management**: Pinia
-- **Routing**: Vue Router
-- **HTTP Client**: Axios
+## Danh mục tài liệu
 
-## Project Structure
+| Tài liệu | Mô tả | Trạng thái |
+|---|---|---|
+| [`docs/description.md`](./docs/description.md) | Mô tả chung dự án 2 nền tảng | Đã duyệt |
+| [`docs/system-architecture.md`](./docs/system-architecture.md) | Kiến trúc production 7 quyết định (D1-D7) + 15 mục thiết kế chi tiết | Đã duyệt 2026-07-22 |
+| [`docs/project-overview-pdr.md`](./docs/project-overview-pdr.md) | PDR: mục tiêu, stakeholders, phạm vi, yêu cầu, ràng buộc | Mới |
+| [`docs/codebase-summary.md`](./docs/codebase-summary.md) | Index repo: cấu trúc, từng tài liệu, trạng thái, quan hệ | Mới |
+| [`docs/project-roadmap.md`](./docs/project-roadmap.md) | Roadmap Phase A/B/C + timeline thi công + gates G0-G6 | Mới |
+| [`docs/POC_architecture.md`](./docs/POC_architecture.md) | POC xử lý nước thải: edge Docker, cloud K8s, chi phí (nặng: base64) | Tham chiếu |
+| [`docs/TechStack_Pipeline.docx.md`](./docs/TechStack_Pipeline.docx.md) | Tech stack đích + 5 giai đoạn phần mềm 9 tháng (nặng: base64) | Tham chiếu |
+| [`docs/Industrial_Park_Technical_Report.pdf`](./docs/Industrial_Park_Technical_Report.pdf) | Hồ sơ thi công Đồng Văn III: kiến trúc 5 lớp, hardware, network | Tham chiếu |
+| [`docs/IoT_Software_Team_Collaboration_Guidelines.pdf`](./docs/IoT_Software_Team_Collaboration_Guidelines.pdf) | Quy chế 2 đội IoT/Phần mềm: ranh giới, gates G0-G6, KPI | Tham chiếu |
+| [`docs/industrial-park-technical-report.md`](./docs/industrial-park-technical-report.md) | Bản Markdown của Technical Report PDF (đầy đủ 30 trang, 32 bảng, 7 hình) | Chuyển đổi |
+| [`docs/iot-software-team-collaboration-guidelines.md`](./docs/iot-software-team-collaboration-guidelines.md) | Bản Markdown của Quy chế PDF (đầy đủ 22 trang, 17 bảng, 3 hình) | Chuyển đổi |
 
+**Sơ đồ tài liệu:**
 ```
-Smart_IOT/
-├── backend/                 # Serverless Lambda backend
-│   ├── src/
-│   │   ├── functions/      # Lambda function handlers
-│   │   │   ├── device/     # Device management endpoints
-│   │   │   ├── alert/      # Alert management endpoints
-│   │   │   └── websocket/  # WebSocket handlers
-│   │   ├── shared/         # Shared utilities
-│   │   │   ├── config/     # Configuration
-│   │   │   ├── middleware/ # Logger, etc.
-│   │   │   └── utils/      # Response helpers
-│   │   └── domain/         # Domain models
-│   ├── package.json
-│   ├── pyproject.toml      # Poetry configuration
-│   └── serverless.yml
-│
-└── frontend/               # Vue.js frontend
-    ├── src/
-    │   ├── api/           # API client and services
-    │   ├── components/    # Vue components
-    │   ├── composables/   # Vue composables (business logic)
-    │   ├── core/          # Types and constants
-    │   ├── pages/         # Page components
-    │   ├── router/        # Vue Router configuration
-    │   └── store/         # Pinia stores
-    ├── package.json
-    └── vite.config.ts
+POC Architecture (reference) 
+    ↓
+Brainstorm Report (7 quyết định + trade-offs, 12 chủ đề)
+    ↓
+System Architecture v1.0 (7 quyết định D1-D7 sticky, 15 mục)
+    ↓
+Diagrams (3 files: overall-hybrid, cloud-platform, on-premise-platform)
 ```
 
-## Getting Started
+---
 
-### Prerequisites
+## Kiến trúc Hybrid — Tóm tắt 7 quyết định
 
-- Node.js 18+
-- Python 3.11+
-- Poetry 2.0+ (for Python dependency management)
-- npm or yarn
+| # | Quyết định | Lựa chọn |
+|---|---|---|
+| D1 | Edge baseline | Cố định ĐV3 (hardware BOM không đổi) |
+| D2 | Tech stack | Go · EMQX · Kafka · ClickHouse · PostgreSQL · Redis · Keycloak · Temporal |
+| D3 | Scale target | 10–30 KCN; cell-ready 100+; mốc 1000 chỉ nguyên tắc |
+| D4 | Connectivity | VNPT MPLS/L3VPN primary + Internet IPsec backup |
+| D5 | DR | Warm standby region 2; RPO 5–15ph; RTO 1–2h |
+| D6 | Tenancy | Shared cluster + PG RLS + EMQX ACL (không per-tenant deploy) |
+| D7 | On-Prem runtime | Docker Compose (KHÔNG K8s/K3s tại site; K8s chỉ cloud) |
 
-### Installation
+---
 
-1. **Install Backend Dependencies**
+## Tech Stack
 
+**Compute & Messaging:** Go/Gin, EMQX, Kafka
+**Data:** ClickHouse, PostgreSQL, Redis
+**Identity & Workflow:** Keycloak, Temporal
+**Media:** MediaMTX (video relay)
+**CI/CD:** GitLab, Argo CD, Terraform, Ansible
+**Observability:** Prometheus, Grafana, Loki, Mimir, Alertmanager
+**Security:** Vault PKI, Keycloak 2FA TOTP, ZTNA
+
+---
+
+## Roadmap 3 Phase
+
+| Phase | Thời gian | Mục tiêu | Exit |
+|---|---|---|---|
+| **A — Landing zone** | 0–3 tháng | VPC/VKS/managed DB; Vault PKI; EMQX cloud; LGTM; DMZ ĐV3 | Telemetry ≤5s; 0 secret plaintext |
+| **B — Hardening** | 3–6 tháng | Warm standby region 2; backup; Temporal onboarding; NOC dashboard | Site #2 ≤1 ngày; DR RTO ≤2h |
+| **C — Scale-out** | 6–18 tháng | 10+ KCN live; Device Registry; cost tuning | SLO 99.9% đo được |
+
+---
+
+## Diagrams (Sơ đồ kiến trúc)
+
+Lưu tại `docs/diagrams/` — 3 file draw.io + PNG export:
+- `overall-hybrid-architecture.*` — tổng thể 2 nền tảng
+- `cloud-platform-architecture.*` — chi tiết cloud
+- `on-premise-platform-architecture.*` — chi tiết on-prem
+
+**Hướng dẫn chỉnh sửa & export:**
 ```bash
-cd backend
+# Mở draw.io (web):
+open https://app.diagrams.net/
+# Upload file .drawio từ docs/diagrams/
 
-# Install Node.js dependencies (for serverless)
-npm install
-
-# Install Python dependencies with Poetry
-poetry install
+# Export PNG 2x (từ CLI):
+drawio -x -f png -s 2 -o output.png input.drawio
 ```
 
-2. **Install Frontend Dependencies**
+---
 
-```bash
-cd frontend
-npm install
-```
+## Cảnh báo
 
-### Running the Application
+⚠️ **2 file tài liệu chứa base64 nhúng (ảnh) — tránh read trực tiếp:**
+- `docs/POC_architecture.md` (~600KB)
+- `docs/TechStack_Pipeline.docx.md` (~237K tokens)
 
-#### Option 1: Use the convenience script
+**Thay thế:** Dùng grep hoặc strip text (nếu AI assistant cần).
 
-From the root directory:
+---
 
-```bash
-./start-dev.sh
-```
+## Bắt đầu
 
-This will start both backend and frontend servers.
+1. **Hiểu kiến trúc:** Đọc [`system-architecture.md`](./docs/system-architecture.md) — 7 quyết định + 15 mục (15 phút)
+2. **Chi tiết PDR:** Xem [`project-overview-pdr.md`](./docs/project-overview-pdr.md) — yêu cầu chi tiết
+3. **Roadmap & timeline:** Xem [`project-roadmap.md`](./docs/project-roadmap.md)
+4. **Sơ đồ kiến trúc:** Mở diagrams từ [`docs/diagrams/`](./docs/diagrams/)
 
-#### Option 2: Start services individually
+---
 
-**Terminal 1 - Backend:**
-```bash
-cd backend
-npm run dev
-```
-Backend will be available at http://localhost:3000
+## Liên hệ
 
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm run dev
-```
-Frontend will be available at http://localhost:5173
-
-## API Endpoints
-
-The backend exposes the following REST API endpoints:
-
-### Devices
-- `GET /devices` - List all devices with pagination
-- `GET /devices/{deviceId}` - Get device by ID
-- `POST /devices` - Register a new device
-- `PUT /devices/{deviceId}` - Update device metadata
-- `DELETE /devices/{deviceId}` - Delete a device
-- `GET /devices/{deviceId}/history` - Get device sensor data history
-
-### Alerts
-- `GET /alerts` - List alerts with filters
-- `GET /alerts/{alertId}` - Get alert details
-- `POST /alerts/{alertId}/acknowledge` - Acknowledge an alert
-- `POST /alerts/{alertId}/resolve` - Resolve an alert
-
-### WebSocket
-- `$connect` - WebSocket connection handler
-- `$disconnect` - WebSocket disconnection handler
-- `subscribe` - Subscribe to device updates
-
-## Testing the Integration
-
-### 1. Test Backend API Directly
-
-```bash
-# Test devices endpoint
-curl http://localhost:3000/devices | jq
-
-# Test alerts endpoint
-curl http://localhost:3000/alerts | jq
-```
-
-### 2. Test Frontend
-
-1. Open http://localhost:5173 in your browser
-2. The dashboard should load and display:
-   - Device statistics (2 devices - 1 online, 1 with warning)
-   - Alert statistics (3 alerts - 1 critical, 1 warning, 1 resolved)
-   - Recent devices list
-   - Recent alerts list
-   - Device health metrics
-
-### 3. Verify Integration
-
-The frontend makes API calls to the backend on page load. Check the browser console (F12) to see:
-- Network requests to http://localhost:3000/devices and /alerts
-- Successful responses with status 200
-- Data being displayed in the UI
-
-## Current Features
-
-### Implemented
-- ✅ Backend API with serverless-offline
-- ✅ Frontend API client with Axios
-- ✅ Composables for business logic (useDevices, useAlerts)
-- ✅ Dashboard page with real API integration
-- ✅ Mock data for devices and alerts
-- ✅ CORS configuration
-- ✅ Error handling
-- ✅ Loading states
-
-### Mock Data Available
-
-**Devices:**
-- Office Temperature Sensor (online, temperature-sensor)
-- Warehouse Humidity Sensor (warning, humidity-sensor)
-
-**Alerts:**
-- High Temperature Alert (critical, triggered)
-- Low Battery Warning (warning, acknowledged)
-- Connectivity Issue (info, resolved)
-
-## Development
-
-### Backend Development
-
-The backend uses hexagonal architecture:
-- **Domain Layer**: Core business logic and entities
-- **Application Layer**: Use cases and application services
-- **Infrastructure Layer**: AWS services, repositories, external APIs
-
-Lambda functions are in `backend/src/functions/` and follow this pattern:
-```python
-from ...shared.utils.response import success_response, error_response
-
-def lambda_handler(event, context):
-    try:
-        # Business logic here
-        return success_response(data)
-    except Exception as e:
-        return error_response('ERROR_CODE', str(e), status_code=500)
-```
-
-### Frontend Development
-
-The frontend follows a layered architecture:
-- **Core**: TypeScript types and constants
-- **API**: HTTP client and service modules
-- **Composables**: Reusable business logic
-- **Components**: UI components
-- **Pages**: Route-level components
-
-To add a new API endpoint:
-1. Add types in `frontend/src/core/types/`
-2. Create API service in `frontend/src/api/modules/`
-3. Create composable in `frontend/src/composables/`
-4. Use composable in components/pages
-
-## Environment Configuration
-
-### Backend
-- `PORT`: API Gateway port (default: 3000)
-- `STAGE`: Deployment stage (dev/prod)
-
-### Frontend
-- `VITE_API_BASE_URL`: Backend API URL (default: http://localhost:3000/api)
-- `VITE_WS_URL`: WebSocket URL (default: ws://localhost:3000)
-
-Environment files:
-- `.env.development` - Development environment
-- `.env.production` - Production environment
-
-## Troubleshooting
-
-### Backend not starting
-- Ensure Poetry dependencies are installed with `poetry install`
-- Check that all Node.js dependencies are installed
-- Verify serverless-offline is working
-
-### Frontend can't connect to backend
-- Ensure backend is running on port 3000
-- Check CORS configuration in Lambda responses
-- Verify `VITE_API_BASE_URL` in `.env.development`
-
-### TypeScript errors in frontend
-- Run `npm run type-check` to see all type errors
-- Ensure all imports are correct
-
-## Next Steps
-
-To complete the application:
-
-1. **Add Authentication**
-   - Implement AWS Cognito integration
-   - Add login/register pages
-   - Protect routes with auth guards
-
-2. **Add Real Data Sources**
-   - Connect to DynamoDB for device/alert storage
-   - Connect to Timestream for sensor data
-   - Implement real-time updates with WebSocket
-
-3. **Add More Features**
-   - Device registration form
-   - Alert rule management
-   - Sensor data visualization with charts
-   - Firmware update management
-
-4. **Deploy to AWS**
-   - Deploy backend with `serverless deploy`
-   - Build frontend with `npm run build`
-   - Deploy frontend to S3 + CloudFront
-
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Test locally
-4. Commit with clear messages
-5. Push and create pull request
-
-## License
-
-MIT
+- **Email:** account2@neoscorp.vn
+- **Repo:** Docs-only design phase (code base TBD)

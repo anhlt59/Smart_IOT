@@ -1,0 +1,199 @@
+<mxfile host="app.diagrams.net" modified="2026-07-22T16:22:00.000Z" agent="architecture-design" version="24.0.0">
+  <diagram id="cloud-arch" name="Cloud Platform Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="CLOUD PLATFORM ARCHITECTURE — VNPT CLOUD (Region 1 · Production)" style="text;html=1;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="15" width="1000" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="users" value="NGƯỜI DÙNG — Web · Mobile · Open API (HTTPS · OIDC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="60" width="300" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="sites" value="ON-PREMISE SITES ×N — qua MPLS/L3VPN + IPsec backup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="60" width="300" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ingress" value="INGRESS LAYER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="140" width="1000" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="in1" value="VNPT LB L7 + WAAP — HTTPS :443 (chỉ Web/API public)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="120" y="185" width="250" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="in2" value="API Gateway — routing · rate limit · JWT verify" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="185" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="in3" value="VNPT LB L4 — MQTT mTLS :8883" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="185" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="in4" value="VPN / MPLS Gateway — private peering" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="185" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vks" value="KUBERNETES CLUSTER — VNPT VKS (PROD) · node pools: app / ingest / data-NVMe · HPA · PDB · NetworkPolicy deny-by-default" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="290" width="1000" height="590" as="geometry" />
+        </mxCell>
+
+        <mxCell id="core" value="CORE SERVICES (Go microservices · shared multi-tenant)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="130" y="340" width="450" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="c1" value="API Service — REST/WS · tenant context (JWT)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="150" y="385" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" value="Device Registry · Fleet Management" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="365" y="385" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="Ingest — normalize · validate · schema check" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="150" y="455" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" value="Rule Engine · Alarm consumer (≤ 2s) · multi-channel notify" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="365" y="455" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" value="Keycloak — IAM · OIDC · RBAC · 2FA TOTP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="150" y="525" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="c6" value="Temporal — onboarding site · workflow phê duyệt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="365" y="525" width="200" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="msg" value="MESSAGING" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="610" y="340" width="460" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="m1" value="EMQX Cluster ×3 — MQTT Broker · ACL theo cert · session" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="630" y="385" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="m2" value="Kafka (managed · RF3) — buffer · replay 3–7 ngày · topic theo domain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="850" y="385" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tsdb" value="TIME-SERIES" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="610" y="480" width="460" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="t1" value="ClickHouse ×2 replicas + 3 Keeper — data-pool NVMe · database per tenant · TTL raw 30 ngày / aggregate 1 năm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="630" y="525" width="420" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="obs" value="MONITORING · LOGGING" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="130" y="620" width="450" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="o1" value="Grafana · Mimir (metrics 13 tháng) · Loki (logs 90 ngày)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="150" y="665" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="o2" value="Alertmanager + OnCall — SLA P1–P4 → Telegram · email" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="365" y="665" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="secz" value="SECURITY" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="610" y="620" width="460" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="sz1" value="Vault — PKI device certs (mTLS · rotation · CRL) · secrets · ESO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="630" y="665" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sz2" value="Tenant isolation — PG RLS · EMQX ACL · NetworkPolicy · isolation test trong CI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="850" y="665" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mgmt" value="MGMT / CI-CD (subnet mgmt)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="760" width="940" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="g1" value="GitLab self-host + runners" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="150" y="805" width="210" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" value="Argo CD — GitOps · manual gate PROD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="375" y="805" width="220" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="g3" value="Terraform — IaC toàn bộ resource · state có lock" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="610" y="805" width="210" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="g4" value="Bastion / ZTNA — 1 cửa quản trị · session log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="835" y="805" width="215" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db" value="DATABASE LAYER (VNPT Managed)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="920" width="1000" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="db1" value="Managed PostgreSQL HA — metadata · alarm lifecycle · audit (PostGIS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="120" y="965" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="db2" value="Managed Redis — cache · last-value · session" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="965" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="db3" value="VNPT Object Storage (S3) — snapshot sự kiện · footage evidence · backup (immutable + versioning)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="965" width="410" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bdr" value="BACKUP &amp; DISASTER RECOVERY" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1070" width="1000" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="b1" value="pgBackRest (WAL + full) · clickhouse-backup · Velero (K8s state) → bucket IMMUTABLE (object lock) · restore test tự động hàng tháng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1115" width="430" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="b2" value="REGION 2 (HCM) — WARM STANDBY: PG replica async · Object Storage replication · IaC re-deploy full stack · RPO 5–15 phút · RTO 1–2 giờ · DR drill mỗi quý" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="1115" width="500" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eu1" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="users" target="in1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eu2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="in1" target="in2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eu3" value="REST / WebSocket" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;exitX=0.3;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="in2" target="c1">
+          <mxGeometry x="0.6" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es1" value="UPLINK — MQTT mTLS · HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;strokeWidth=2;exitX=0.3;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="sites" target="in3">
+          <mxGeometry x="0.5" y="-14" relative="1" as="geometry">
+            <mxPoint x="-60" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ed1" value="DOWNLINK — config · OTA · command (2FA · audit)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;dashed=1;strokeColor=#cc0000;fontColor=#cc0000;exitX=0.7;exitY=0;entryX=0.7;entryY=1;" edge="1" parent="1" source="in3" target="sites">
+          <mxGeometry x="-0.5" y="14" relative="1" as="geometry">
+            <mxPoint x="80" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="es2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0.55;entryY=0;" edge="1" parent="1" source="in3" target="m1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="em1" value="persist" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="m1" target="m2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="em2" value="consume" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0.5;entryY=0;jumpStyle=arc;jumpSize=6;" edge="1" parent="1" source="m2" target="c3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="950" y="470" />
+              <mxPoint x="602" y="470" />
+              <mxPoint x="602" y="447" />
+              <mxPoint x="250" y="447" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="em3" value="ghi time-series" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0;entryY=0.5;jumpStyle=arc;jumpSize=6;" edge="1" parent="1" source="c3" target="t1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="250" y="517" />
+              <mxPoint x="602" y="517" />
+              <mxPoint x="602" y="555" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="em4" value="metadata · cache (SQL · Redis)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;exitX=1;exitY=0.9;entryX=0.5;entryY=0;jumpStyle=arc;jumpSize=6;" edge="1" parent="1" source="core" target="db">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="602" y="574" />
+              <mxPoint x="602" y="900" />
+              <mxPoint x="600" y="900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eb1" value="backup" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="db" target="b1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er1" value="replicate" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;dashed=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="b1" target="b2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
