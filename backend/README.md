@@ -51,6 +51,7 @@ backend/
 | Technology | Purpose | Version |
 |------------|---------|---------|
 | **Python** | Programming language | 3.11+ |
+| **Poetry** | Dependency management | 2.0+ |
 | **Serverless Framework** | Infrastructure as Code | 3.x+ |
 | **AWS Lambda** | Serverless compute | - |
 | **boto3** | AWS SDK for Python | Latest |
@@ -79,6 +80,7 @@ backend/
 ### Prerequisites
 
 - Python 3.11+
+- Poetry 2.0+ (for dependency management)
 - Node.js 18+ (for Serverless Framework)
 - AWS CLI configured with appropriate credentials
 - Docker (for packaging Python dependencies)
@@ -87,23 +89,19 @@ backend/
 
 1. **Install Node.js dependencies** (Serverless Framework):
    ```bash
-   npm install -g serverless
    npm install
    ```
 
-2. **Install Python dependencies**:
+2. **Install Python dependencies with Poetry**:
    ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   pip install -r requirements-dev.txt
+   poetry install
    ```
 
-3. **Install Serverless plugins**:
-   ```bash
-   serverless plugin install -n serverless-python-requirements
-   serverless plugin install -n serverless-plugin-tracing
-   ```
+   This will:
+   - Create a virtual environment automatically
+   - Install all production dependencies
+   - Install all dev dependencies (pytest, black, mypy, etc.)
+   - Generate a `poetry.lock` file for reproducible builds
 
 ## Development
 
@@ -111,32 +109,64 @@ backend/
 
 Run unit tests:
 ```bash
-pytest tests/unit/
+poetry run pytest tests/unit/
 ```
 
 Run all tests with coverage:
 ```bash
-pytest tests/ --cov=src --cov-report=html
+poetry run pytest tests/ --cov=src --cov-report=html
+```
+
+Or use npm scripts:
+```bash
+npm run test
 ```
 
 ### Type Checking
 
 ```bash
-mypy src/
+poetry run mypy src/
+# or
+npm run type-check
 ```
 
 ### Code Formatting
 
 ```bash
-black src/ tests/
-isort src/ tests/
+poetry run black src/ tests/
+# or
+npm run format
 ```
 
 ### Linting
 
 ```bash
-flake8 src/ tests/
-pylint src/
+poetry run flake8 src/ tests/
+poetry run pylint src/
+# or
+npm run lint
+```
+
+### Managing Dependencies
+
+Add a production dependency:
+```bash
+poetry add package-name
+```
+
+Add a development dependency:
+```bash
+poetry add --group dev package-name
+```
+
+Update dependencies:
+```bash
+poetry update
+```
+
+Show installed packages:
+```bash
+poetry show
 ```
 
 ## Deployment
