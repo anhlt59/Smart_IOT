@@ -383,6 +383,7 @@ custom:
     lambdaPort: 3002
     noPrependStageInUrl: true
     noAuth: true
+    prefix: api
 
 package:
   exclude:
