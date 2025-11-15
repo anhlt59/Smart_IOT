@@ -1,0 +1,382 @@
+service: iot-monitoring-backend
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.11
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  memorySize: 512
+  timeout: 30
+
+  environment:
+    ENVIRONMENT: ${self:provider.stage}
+    AWS_REGION: ${self:provider.region}
+    # DynamoDB Tables
+    DEVICES_TABLE: ${self:service}-devices-${self:provider.stage}
+    USERS_TABLE: ${self:service}-users-${self:provider.stage}
+    ALERTS_TABLE: ${self:service}-alerts-${self:provider.stage}
+    ALERT_RULES_TABLE: ${self:service}-alert-rules-${self:provider.stage}
+    FIRMWARE_TABLE: ${self:service}-firmware-${self:provider.stage}
+    DEPLOYMENTS_TABLE: ${self:service}-deployments-${self:provider.stage}
+    NOTIFICATIONS_TABLE: ${self:service}-notifications-${self:provider.stage}
+    CONNECTIONS_TABLE: ${self:service}-connections-${self:provider.stage}
+    # Timestream
+    TIMESTREAM_DATABASE: iot_monitoring_${self:provider.stage}
+    TIMESTREAM_TABLE: sensor_data
+    # S3 Buckets
+    FIRMWARE_BUCKET: ${self:service}-firmware-${self:provider.stage}
+    DATA_EXPORT_BUCKET: ${self:service}-exports-${self:provider.stage}
+    LOG_LEVEL: INFO
+
+  iam:
+    role:
+      statements:
+        # DynamoDB permissions
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:BatchGetItem
+            - dynamodb:BatchWriteItem
+          Resource:
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:service}-*-${self:provider.stage}
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:service}-*-${self:provider.stage}/index/*
+
+        # Timestream permissions
+        - Effect: Allow
+          Action:
+            - timestream:WriteRecords
+            - timestream:Select
+            - timestream:DescribeTable
+          Resource:
+            - arn:aws:timestream:${self:provider.region}:*:database/iot_monitoring_${self:provider.stage}
+            - arn:aws:timestream:${self:provider.region}:*:database/iot_monitoring_${self:provider.stage}/table/sensor_data
+
+        # S3 permissions
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:DeleteObject
+            - s3:ListBucket
+          Resource:
+            - arn:aws:s3:::${self:service}-*-${self:provider.stage}
+            - arn:aws:s3:::${self:service}-*-${self:provider.stage}/*
+
+        # SQS permissions
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource:
+            - arn:aws:sqs:${self:provider.region}:*:${self:service}-*-${self:provider.stage}
+
+        # IoT Core permissions
+        - Effect: Allow
+          Action:
+            - iot:CreateThing
+            - iot:UpdateThing
+            - iot:DeleteThing
+            - iot:CreateKeysAndCertificate
+            - iot:AttachThingPrincipal
+            - iot:CreateJob
+            - iot:UpdateJob
+          Resource: '*'
+
+        # Secrets Manager
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: 'arn:aws:secretsmanager:${self:provider.region}:*:secret:*'
+
+        # CloudWatch Logs
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: 'arn:aws:logs:${self:provider.region}:*:log-group:/aws/lambda/*'
+
+functions:
+  # Device Management APIs
+  registerDevice:
+    handler: src/functions/device/register_device.lambda_handler
+    description: Register new IoT device
+    events:
+      - httpApi:
+          path: /devices
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
+            type: jwt
+            identitySource: $request.header.Authorization
+
+  getDevice:
+    handler: src/functions/device/get_device.lambda_handler
+    description: Get device by ID
+    events:
+      - httpApi:
+          path: /devices/{deviceId}
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+            type: jwt
+
+  listDevices:
+    handler: src/functions/device/list_devices.lambda_handler
+    description: List devices with filters and pagination
+    events:
+      - httpApi:
+          path: /devices
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+            type: jwt
+
+  updateDevice:
+    handler: src/functions/device/update_device.lambda_handler
+    description: Update device metadata
+    events:
+      - httpApi:
+          path: /devices/{deviceId}
+          method: PUT
+          authorizer:
+            name: cognitoAuthorizer
+            type: jwt
+
+  deleteDevice:
+    handler: src/functions/device/delete_device.lambda_handler
+    description: Delete device
+    events:
+      - httpApi:
+          path: /devices/{deviceId}
+          method: DELETE
+          authorizer:
+            name: cognitoAuthorizer
+            type: jwt
+
+  getDeviceHistory:
+    handler: src/functions/device/get_device_history.lambda_handler
+    description: Get device sensor data history
+    events:
+      - httpApi:
+          path: /devices/{deviceId}/history
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+            type: jwt
+
+  # Alert Management APIs
+  listAlerts:
+    handler: src/functions/alert/list_alerts.lambda_handler
+    description: List alerts with filters
+    events:
+      - httpApi:
+          path: /alerts
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+            type: jwt
+
+  getAlert:
+    handler: src/functions/alert/get_alert.lambda_handler
+    description: Get alert details
+    events:
+      - httpApi:
+          path: /alerts/{alertId}
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+            type: jwt
+
+  acknowledgeAlert:
+    handler: src/functions/alert/acknowledge_alert.lambda_handler
+    description: Acknowledge alert
+    events:
+      - httpApi:
+          path: /alerts/{alertId}/acknowledge
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
+            type: jwt
+
+  resolveAlert:
+    handler: src/functions/alert/resolve_alert.lambda_handler
+    description: Resolve alert
+    events:
+      - httpApi:
+          path: /alerts/{alertId}/resolve
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
+            type: jwt
+
+  # Stream Processing Functions
+  kinesisConsumer:
+    handler: src/functions/stream_processing/kinesis_consumer.lambda_handler
+    description: Process device telemetry from Kinesis
+    memorySize: 1024
+    timeout: 60
+    events:
+      - stream:
+          type: kinesis
+          arn: !GetAtt DataStream.Arn
+          batchSize: 100
+          startingPosition: LATEST
+          maximumBatchingWindowInSeconds: 5
+          functionResponseType: ReportBatchItemFailures
+
+  alertEvaluator:
+    handler: src/functions/stream_processing/alert_evaluator.lambda_handler
+    description: Evaluate alert rules
+    memorySize: 1024
+    timeout: 300
+    events:
+      - schedule:
+          rate: rate(1 minute)
+          enabled: true
+
+  notificationDispatcher:
+    handler: src/functions/stream_processing/notification_dispatcher.lambda_handler
+    description: Dispatch notifications for alerts
+    memorySize: 512
+    timeout: 60
+    events:
+      - sqs:
+          arn: !GetAtt AlertQueue.Arn
+          batchSize: 10
+          functionResponseType: ReportBatchItemFailures
+
+  # WebSocket Functions
+  websocketConnect:
+    handler: src/functions/websocket/connect.lambda_handler
+    description: WebSocket connection handler
+    events:
+      - websocket:
+          route: $connect
+
+  websocketDisconnect:
+    handler: src/functions/websocket/disconnect.lambda_handler
+    description: WebSocket disconnection handler
+    events:
+      - websocket:
+          route: $disconnect
+
+  websocketSubscribe:
+    handler: src/functions/websocket/subscribe.lambda_handler
+    description: Subscribe to device updates
+    events:
+      - websocket:
+          route: subscribe
+
+resources:
+  Resources:
+    # DynamoDB Tables
+    DevicesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DEVICES_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: deviceId
+            AttributeType: S
+          - AttributeName: organizationId
+            AttributeType: S
+          - AttributeName: status
+            AttributeType: S
+        KeySchema:
+          - AttributeName: deviceId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: organizationId-index
+            KeySchema:
+              - AttributeName: organizationId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    AlertsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.ALERTS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: alertId
+            AttributeType: S
+          - AttributeName: timestamp
+            AttributeType: N
+        KeySchema:
+          - AttributeName: alertId
+            KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE
+
+    # Kinesis Data Stream
+    DataStream:
+      Type: AWS::Kinesis::Stream
+      Properties:
+        Name: ${self:service}-data-stream-${self:provider.stage}
+        ShardCount: 1
+        StreamModeDetails:
+          StreamMode: PROVISIONED
+
+    # SQS Queues
+    AlertQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-alert-queue-${self:provider.stage}
+        VisibilityTimeout: 60
+        MessageRetentionPeriod: 1209600
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt AlertDLQ.Arn
+          maxReceiveCount: 3
+
+    AlertDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-alert-dlq-${self:provider.stage}
+        MessageRetentionPeriod: 1209600
+
+    # S3 Buckets
+    FirmwareBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.FIRMWARE_BUCKET}
+        VersioningConfiguration:
+          Status: Enabled
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+
+plugins:
+  - serverless-python-requirements
+  - serverless-plugin-tracing
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer: true
+
+  tracing:
+    apiGateway: true
+    lambda: true
+
+package:
+  exclude:
+    - node_modules/**
+    - .git/**
+    - .venv/**
+    - __pycache__/**
+    - "*.pyc"
+    - tests/**
+    - docs/**
