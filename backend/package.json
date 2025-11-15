@@ -9,10 +9,16 @@
     "deploy:prod": "serverless deploy --stage prod",
     "remove:dev": "serverless remove --stage dev",
     "remove:prod": "serverless remove --stage prod",
-    "test": "pytest tests/",
-    "lint": "flake8 src/",
-    "format": "black src/",
-    "type-check": "mypy src/"
+    "test": "poetry run pytest tests/",
+    "lint": "poetry run flake8 src/",
+    "format": "poetry run black src/",
+    "type-check": "poetry run mypy src/",
+    "install": "poetry install",
+    "install:prod": "poetry install --only main",
+    "add": "poetry add",
+    "add:dev": "poetry add --group dev",
+    "update": "poetry update",
+    "shell": "poetry shell"
   },
   "keywords": [
     "iot",

@@ -367,6 +367,11 @@ custom:
   pythonRequirements:
     dockerizePip: true
     layer: true
+    usePoetry: true
+    poetryInclude:
+      - packages
+    slim: true
+    strip: false
 
   tracing:
     apiGateway: true

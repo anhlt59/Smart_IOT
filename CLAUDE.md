@@ -38,6 +38,7 @@ Smart_IOT is a **production-ready, full-stack IoT monitoring platform** that pro
 
 **Backend:**
 - Python 3.11 on AWS Lambda (Serverless)
+- Poetry for dependency management
 - Serverless Framework for IaC
 - 15+ AWS Services (DynamoDB, Timestream, Kinesis, IoT Core, etc.)
 - Hexagonal Architecture pattern
@@ -75,6 +76,7 @@ Smart_IOT is a **production-ready, full-stack IoT monitoring platform** that pro
 
 - **Node.js** 18+ (for both frontend and backend Serverless tooling)
 - **Python** 3.11+ (for Lambda functions)
+- **Poetry** 2.0+ (for Python dependency management)
 - **npm** or yarn
 
 ### Installation
@@ -86,9 +88,7 @@ cd Smart_IOT
 # Backend setup
 cd backend
 npm install                          # Serverless dependencies
-python3 -m venv venv
-source venv/bin/activate             # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+poetry install                       # Install Python dependencies with Poetry
 
 # Frontend setup
 cd ../frontend
@@ -998,9 +998,9 @@ Update `VITE_API_BASE_URL` to point to deployed API Gateway URL.
 **1. Backend won't start**
 ```bash
 # Symptom: serverless-offline fails to start
-# Solution: Check Python virtual environment
-source venv/bin/activate
-pip install -r requirements.txt
+# Solution: Check Poetry environment and dependencies
+cd backend
+poetry install
 
 # Check Node dependencies
 npm install
@@ -1141,18 +1141,31 @@ console.log('Response:', response);
 
 **Backend:**
 ```bash
-# Format code
 cd backend
-black src/
+
+# Install dependencies
+poetry install
+
+# Format code
+poetry run black src/
 
 # Lint code
-flake8 src/
+poetry run flake8 src/
 
 # Type check
-mypy src/
+poetry run mypy src/
 
 # Run tests
-pytest
+poetry run pytest
+
+# Add new dependency
+poetry add package-name
+
+# Add dev dependency
+poetry add --group dev package-name
+
+# Update dependencies
+poetry update
 
 # Deploy
 npm run deploy:dev

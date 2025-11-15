@@ -6,6 +6,7 @@ A full-stack IoT monitoring application with a Vue.js frontend and AWS Lambda ba
 
 ### Backend
 - **Framework**: Serverless Framework with AWS Lambda (Python 3.11)
+- **Dependency Management**: Poetry
 - **Architecture**: Hexagonal Architecture pattern
 - **Local Development**: serverless-offline for local API Gateway simulation
 - **API**: REST API with CORS enabled
@@ -34,7 +35,7 @@ Smart_IOT/
 │   │   │   └── utils/      # Response helpers
 │   │   └── domain/         # Domain models
 │   ├── package.json
-│   ├── requirements.txt
+│   ├── pyproject.toml      # Poetry configuration
 │   └── serverless.yml
 │
 └── frontend/               # Vue.js frontend
@@ -56,6 +57,7 @@ Smart_IOT/
 
 - Node.js 18+
 - Python 3.11+
+- Poetry 2.0+ (for Python dependency management)
 - npm or yarn
 
 ### Installation
@@ -68,10 +70,8 @@ cd backend
 # Install Node.js dependencies (for serverless)
 npm install
 
-# Create virtual environment and install Python dependencies
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+# Install Python dependencies with Poetry
+poetry install
 ```
 
 2. **Install Frontend Dependencies**
@@ -237,9 +237,9 @@ Environment files:
 ## Troubleshooting
 
 ### Backend not starting
-- Ensure Python virtual environment is activated
-- Check that all Python dependencies are installed
-- Verify Node.js dependencies are installed
+- Ensure Poetry dependencies are installed with `poetry install`
+- Check that all Node.js dependencies are installed
+- Verify serverless-offline is working
 
 ### Frontend can't connect to backend
 - Ensure backend is running on port 3000
