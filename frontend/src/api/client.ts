@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
+import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { API_BASE_URL, STORAGE_KEYS } from '@/core/constants'
 import type { ApiResponse, ApiError } from '@/core/types/api'
 
