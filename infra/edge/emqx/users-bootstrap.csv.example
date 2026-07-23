@@ -1,0 +1,3 @@
+user_id,password,is_superuser
+app,app_pass_change_me,false
+gateway1,gateway_pass_change_me,false

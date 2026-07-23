@@ -1,0 +1,75 @@
+---
+title: Overall Hybrid Architecture — Industrial IoT Platform (Multi-site · Production)
+---
+flowchart LR
+    USERS["Người dùng<br/>Web · Mobile · Open API"]
+
+    subgraph SITES["KCN SITES — ON-PREMISE (10–30 KCN · cell-ready 100+)"]
+        subgraph S1["Site #1 — Đồng Văn III (FortiGate 80F · tự trị khi mất WAN)"]
+            OT1["OT — Z0–2<br/>PLC · RTU · Sensors · Camera<br/>read-only · PLC fail-safe"]
+            GW1["Edge Gateway<br/>ECU-1051 ×9<br/>buffer 30 ngày · truyền bù"]
+            PLT1["On-Prem Platform — Z3<br/>Docker Compose (KHÔNG K8s/K3s)<br/>EMQX · Rule Engine · IOC local<br/>PostgreSQL · TimescaleDB · Redis"]
+            DMZ1["DMZ — Z3.5<br/>EMQX Bridge · Sync Uplink<br/>MediaMTX Relay"]
+        end
+        S2["Site #2 — cùng Site Blueprint (Git)<br/>cert riêng per-site<br/>onboarding cloud-side ≤ 1 ngày"]
+        SN["Site #N<br/>··· nhân bản theo blueprint ···"]
+    end
+
+    subgraph WAN["HYBRID CONNECTIVITY — không mở inbound Internet vào site"]
+        MPLS["VNPT MPLS / L3VPN — PRIMARY<br/>private peering · QoS · SLA telco<br/>20–50 Mbps/site"]
+        IPSEC["Internet FTTH + IPsec VPN — BACKUP<br/>SD-WAN auto-failover (FortiGate)"]
+    end
+
+    subgraph CLOUD["VNPT CLOUD PLATFORM"]
+        subgraph R1["REGION 1 (Hà Nội) — PRIMARY"]
+            ING["INGRESS<br/>LB L7 + WAAP :443 · LB L4 mTLS :8883<br/>VPN/MPLS Gateway · API Gateway"]
+            VKS["VKS (Kubernetes)<br/>Core Services Go multi-tenant · EMQX ×3<br/>Kafka consumers · ClickHouse · Keycloak<br/>Temporal · LGTM Observability · Vault PKI"]
+            MGD["MANAGED SERVICES<br/>PostgreSQL HA · Redis<br/>Kafka RF3 · Object Storage S3"]
+        end
+        R2["REGION 2 (HCM) — WARM STANDBY<br/>PG replica async · Object Storage replication<br/>backup immutable · IaC dựng lại full stack<br/>RPO 5–15 phút · RTO 1–2 giờ"]
+    end
+
+    OT1 --> GW1
+    GW1 --> PLT1
+    PLT1 --> DMZ1
+    ING --> VKS
+    VKS --> MGD
+    USERS -->|"HTTPS · OIDC · 2FA"| ING
+    DMZ1 ==>|"UPLINK — MQTT mTLS :8883<br/>telemetry · event · alarm · backfill<br/>HTTPS :443 — backup · metrics/logs · snapshot"| WAN
+    S2 ==> WAN
+    SN -.-> WAN
+    WAN ==>|"UPLINK"| ING
+    ING -.->|"DOWNLINK — config · OTA ring rollout<br/>remote command whitelist · 2FA · audit · ack ≤ 5s"| WAN
+    WAN -.->|"DOWNLINK"| S1
+    R1 -.->|"async replication · backup"| R2
+
+    linkStyle 10,11 stroke:#cc0000,color:#cc0000
+    linkStyle 12 stroke:#666666,color:#666666
+
+    classDef ot fill:#ffffff,stroke:#b85450,color:#000000
+    classDef plat fill:#dae8fc,stroke:#6c8ebf,color:#000000
+    classDef dmz fill:#ffe6cc,stroke:#d79b00,color:#000000
+    classDef siteBox fill:#f8cecc,stroke:#b85450,color:#000000
+    classDef dashed fill:#ffffff,stroke:#999999,color:#666666,stroke-dasharray:6 4
+    classDef cloudNode fill:#d5e8d4,stroke:#82b366,color:#000000
+    classDef ingress fill:#ffe6cc,stroke:#d79b00,color:#000000
+    classDef managed fill:#fff2cc,stroke:#d6b656,color:#000000
+    classDef conn fill:#ffffff,stroke:#666666,color:#000000
+    classDef user fill:#ffffff,stroke:#666666,color:#000000
+
+    class OT1,GW1 ot
+    class PLT1 plat
+    class DMZ1 dmz
+    class S2 siteBox
+    class SN,R2 dashed
+    class VKS cloudNode
+    class ING ingress
+    class MGD managed
+    class MPLS,IPSEC conn
+    class USERS user
+
+    style SITES fill:#fdf3f2,stroke:#b85450
+    style S1 fill:#f8cecc,stroke:#b85450
+    style WAN fill:#f5f5f5,stroke:#666666
+    style CLOUD fill:#dae8fc,stroke:#6c8ebf
+    style R1 fill:#ffffff,stroke:#6c8ebf

@@ -2,7 +2,31 @@
 
 **Nền tảng quản lý vận hành tập trung cho khu công nghiệp thông minh (Industrial IoT Platform)**, hỗ trợ multi-site, multi-tenant. Kiến trúc Hybrid: On-Premise Platform tại từng KCN (tự trị khi mất Internet) + Cloud Platform trên VNPT Cloud.
 
-**Trạng thái dự án:** Giai đoạn thiết kế kiến trúc ✓ · Chưa triển khai code.
+**Trạng thái dự án:** Thiết kế kiến trúc ✓ · POC on-premise đang triển khai (plan `plans/260723-1450-poc-onprem-iiot-modular-monolith/`).
+
+---
+
+## POC Quickstart
+
+Yêu cầu: Docker Desktop (Compose v2) + Go 1.26+ (chỉ khi dev backend).
+
+```bash
+make up      # copy .env.example → .env lần đầu, build + start 7 containers + auto-migrate
+make ps      # trạng thái + health từng container
+make test    # unit tests backend
+make down    # dừng stack (giữ volumes)
+```
+
+| Thành phần | Địa chỉ | Ghi chú |
+|---|---|---|
+| App API (`--role=api`) | http://localhost:8080/healthz | REST + WS theo `apps/backend/api/openapi.yaml` |
+| EMQX dashboard | http://localhost:18083 | user `admin`, pass trong `.env` — debug MQTT ([docs EMQX 5.8](https://docs.emqx.com/en/emqx/v5.8/)) |
+| Grafana (ops) | http://localhost:3000 | datasource PG provisioned sẵn |
+| MediaMTX | rtsp://localhost:8554 · HLS :8888 · WebRTC :8889 | camera relay |
+| PostgreSQL/Timescale | 127.0.0.1:5433 (host, dev-only) | trong compose network: `postgres:5432` |
+
+Cấu trúc code: `apps/backend/` (Go modular monolith, 1 binary `--role=api|ingest|worker|all`) · `infra/edge/` (compose + config services) · contract API: `apps/backend/api/openapi.yaml`.
+Secrets: chỉ commit `.env.example` / `users-bootstrap.csv.example`; bản thật do `make up` sinh ra, nằm trong `.gitignore`.
 
 ---
 
@@ -73,19 +97,17 @@ Diagrams (3 files: overall-hybrid, cloud-platform, on-premise-platform)
 
 ## Diagrams (Sơ đồ kiến trúc)
 
-Lưu tại `docs/diagrams/` — 3 file draw.io + PNG export:
-- `overall-hybrid-architecture.*` — tổng thể 2 nền tảng
-- `cloud-platform-architecture.*` — chi tiết cloud
-- `on-premise-platform-architecture.*` — chi tiết on-prem
+Lưu tại `docs/diagrams/` — 3 file Mermaid v11 (`flowchart LR`):
+- `overall-hybrid-architecture.mmd` — tổng thể 2 nền tảng
+- `cloud-platform-architecture.mmd` — chi tiết cloud
+- `on-premise-platform-architecture.mmd` — chi tiết on-prem
 
 **Hướng dẫn chỉnh sửa & export:**
 ```bash
-# Mở draw.io (web):
-open https://app.diagrams.net/
-# Upload file .drawio từ docs/diagrams/
+# Preview: GitHub/GitLab render trực tiếp, hoặc https://mermaid.live
 
-# Export PNG 2x (từ CLI):
-drawio -x -f png -s 2 -o output.png input.drawio
+# Export PNG/SVG (từ CLI, cần @mermaid-js/mermaid-cli):
+mmdc -i input.mmd -o output.png -s 2
 ```
 
 ---

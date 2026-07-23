@@ -61,6 +61,12 @@ dist-ssr/
 .env.local
 .env.*.local
 
+# Local credentials generated from *.example templates (make up)
+infra/edge/emqx/users-bootstrap.csv
+
+# Go
+apps/backend/bin/
+
 # Logs
 logs/
 *.log

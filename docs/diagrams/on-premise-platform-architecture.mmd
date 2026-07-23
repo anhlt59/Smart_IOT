@@ -1,0 +1,108 @@
+---
+title: On-Premise Platform Architecture — Docker Compose (01 KCN · Production · KHÔNG Kubernetes/K3s)
+---
+flowchart LR
+    subgraph OTZ["Z0–2 — OT VLAN"]
+        subgraph DEVZ["INDUSTRIAL DEVICES (Z0–1 · read-only)"]
+            PLC["PLC / SCADA<br/>XLNT · trạm bơm · PCCC<br/>fail-safe · READ-ONLY"]
+            RTU["RTU / Datalogger<br/>ADAM-3600 (TT 10/2021)"]
+            SEN["Sensors<br/>pH · COD · TSS · flow · điện · nước"]
+            LIGHT["Tủ chiếu sáng (PLC 9 lộ)<br/>đồng hồ DN300/250"]
+        end
+        GW["IoT Gateway ECU-1051 ×9<br/>Modbus RTU/TCP · OPC-UA · BACnet/IP · DNP3 → MQTT/TLS<br/>buffer 30 ngày · scale 1 lần duy nhất"]
+        AIBOX["Edge AI Box ×2 (Jetson Orin)<br/>AI khói/lửa tại biên"]
+    end
+
+    G4["Tủ IoT 4G phân tán ×4<br/>chiếu sáng · trạm bơm · nước tổng · xe quan trắc<br/>4G/LTE + IPsec VPN về FortiGate<br/>KHÔNG nối thẳng cloud"]
+
+    subgraph CAMZ["CAMERA VLAN — không route Internet"]
+        CAM["Camera IP / PTZ<br/>RTSP · ONVIF<br/>27 bullet + PTZ + Smart Pole"]
+        NVR["NVR<br/>footage 2MP lưu 30 ngày (local only)"]
+    end
+
+    subgraph Z3["Z3 — SERVER ROOM · DOCKER COMPOSE (2× R660xs active/standby keepalived VIP · R760xs · DL380 GPU · 2× UPS 6kVA)"]
+        subgraph APP["CORE SERVICES — app host"]
+            EMQXE["EMQX Edge Broker<br/>MQTT mTLS · ACL theo cert<br/>ranh giới nghiệm thu 2 đội"]
+            RULE["Rule Engine<br/>đánh giá ngưỡng · sự kiện ≤ 2s"]
+            ALARM["Alarm · Notification<br/>vòng đời cảnh báo · IOC · email/Telegram"]
+            IOC["Local API + IOC Dashboard (Nginx)<br/>vận hành độc lập khi mất cloud"]
+            CFG["Device Config Agent<br/>cấu hình gateway as-built<br/>nhận config/OTA từ cloud"]
+            VMS["VMS + AI Analytics<br/>GPU DL380 · sự kiện an ninh/giao thông"]
+        end
+        subgraph DATAZ["DATA LAYER — data host R760xs"]
+            PGL["PostgreSQL<br/>metadata · config · audit"]
+            TSDB["TimescaleDB<br/>time-series ≥ 12 tháng"]
+            REDISL["Redis<br/>cache · last-value · session"]
+        end
+        SECL["SECURITY<br/>Local Auth JWT · RBAC · 2FA (sync Keycloak cloud)<br/>PKI device cert mTLS · rotation · CRL<br/>Vault agent secrets — không plaintext"]
+        INFRA["INFRASTRUCTURE / OPS<br/>Telegraf · Grafana Agent · Promtail<br/>backup nightly · Ansible-pull ring rollout<br/>NTP chrony · version pin — KHÔNG Watchtower"]
+    end
+
+    subgraph DMZ["Z3.5 — DMZ (VLAN riêng · cửa duy nhất site ↔ cloud)"]
+        BRIDGE["EMQX Bridge<br/>uplink MQTT mTLS<br/>store-and-forward · cờ backfill"]
+        MMTX["MediaMTX Relay<br/>video on-demand WebRTC/HLS<br/>giới hạn stream"]
+        SYNC["Sync Uplink Service<br/>backup nightly · metrics/logs remote_write<br/>snapshot sự kiện (pre-signed URL)"]
+    end
+
+    FGW["FortiGate 80F — NGFW<br/>deny-by-default · IPS · SD-WAN<br/>phân đoạn mọi VLAN · terminate VPN<br/>egress whitelist FQDN"]
+
+    MGMTV["MGMT VLAN<br/>iDRAC/iLO · FortiGate mgmt<br/>chỉ từ bastion/ZTNA cloud qua tunnel"]
+
+    CLOUD["VNPT CLOUD PLATFORM<br/>(ngoài phạm vi sơ đồ)<br/>MPLS/L3VPN primary + Internet IPsec backup"]
+
+    DEVZ -->|"Modbus / OPC-UA / 4–20mA (read-only)"| GW
+    CAM -->|"footage"| NVR
+    CAM -->|"RTSP — AI tại biên"| AIBOX
+    CAMZ -->|"RTSP/ONVIF (qua FortiGate)"| VMS
+    GW ==>|"MQTT mTLS · QoS1 (qua FortiGate)"| EMQXE
+    AIBOX -->|"event AI (MQTT)"| EMQXE
+    G4 -->|"4G/LTE + IPsec VPN"| FGW
+    EMQXE -->|"telemetry · event"| RULE
+    RULE -->|"phát cảnh báo"| ALARM
+    EMQXE ==>|"ingest → TSDB · Redis"| DATAZ
+    IOC -->|"truy vấn API"| DATAZ
+    EMQXE ==>|"bridge uplink<br/>store-and-forward · backfill"| BRIDGE
+    VMS -->|"live view on-demand"| MMTX
+    INFRA -->|"backup · metrics/logs"| SYNC
+    BRIDGE ==>|"MQTT mTLS"| FGW
+    SYNC -->|"HTTPS"| FGW
+    MMTX -->|"WebRTC/HLS"| FGW
+    FGW ==>|"UPLINK — MPLS/L3VPN primary<br/>Internet IPsec backup (SD-WAN failover)"| CLOUD
+    CLOUD -.->|"DOWNLINK — config · OTA<br/>remote command whitelist · 2FA · audit · ack ≤ 5s"| FGW
+    FGW -.-> BRIDGE
+    BRIDGE -.-> EMQXE
+    EMQXE -.->|"config · OTA"| CFG
+    EMQXE -.->|"lệnh whitelist"| GW
+    GW -.->|"lệnh chiếu sáng (PLC 9 lộ · PTZ)"| LIGHT
+    FGW -.->|"bastion/ZTNA tunnel"| MGMTV
+
+    linkStyle 18,19,20,21,22,23 stroke:#cc0000,color:#cc0000
+    linkStyle 24 stroke:#666666,color:#666666
+
+    classDef otN fill:#ffffff,stroke:#b85450,color:#000000
+    classDef camN fill:#ffffff,stroke:#10739e,color:#000000
+    classDef coreN fill:#ffffff,stroke:#82b366,color:#000000
+    classDef dataN fill:#ffffff,stroke:#d6b656,color:#000000
+    classDef secN fill:#e1d5e7,stroke:#9673a6,color:#000000
+    classDef infraN fill:#f5f5f5,stroke:#666666,color:#000000
+    classDef dmzN fill:#ffffff,stroke:#d79b00,color:#000000
+    classDef fw fill:#b85450,stroke:#8f3b36,color:#ffffff
+    classDef dashed fill:#ffffff,stroke:#999999,color:#666666,stroke-dasharray:6 4
+
+    class PLC,RTU,SEN,LIGHT,GW,AIBOX otN
+    class CAM,NVR camN
+    class EMQXE,RULE,ALARM,IOC,CFG,VMS coreN
+    class PGL,TSDB,REDISL dataN
+    class SECL secN
+    class INFRA infraN
+    class BRIDGE,MMTX,SYNC dmzN
+    class FGW fw
+    class G4,MGMTV,CLOUD dashed
+
+    style OTZ fill:#f8cecc,stroke:#b85450
+    style DEVZ fill:#fdf3f2,stroke:#b85450
+    style CAMZ fill:#b1ddf0,stroke:#10739e
+    style Z3 fill:#dae8fc,stroke:#6c8ebf
+    style APP fill:#d5e8d4,stroke:#82b366
+    style DATAZ fill:#fff2cc,stroke:#d6b656
+    style DMZ fill:#ffe6cc,stroke:#d79b00

@@ -26,20 +26,18 @@ Hướng dẫn cho AI assistant làm việc trong repo docs-only này.
 ### Tài liệu tham chiếu (context dùng được)
 - `docs/description.md` — Mô tả 2 nền tảng (94 dòng)
 - `docs/POC_architecture.md` — POC nước thải: edge 10 services, cloud K8s (nặng, base64)
-- `docs/TechStack_Pipeline.docx.md` — Tech stack + 5 giai đoạn phần mềm 9 tháng (nặng, base64)
+- `docs/tech-stack-pipeline.md` — Tech stack + 5 giai đoạn phần mềm 9 tháng (nặng, base64)
 - `docs/industrial-park-technical-report.md` — Bản Markdown ĐẦY ĐỦ của Technical Report PDF (794 dòng) → **đọc bản này thay PDF**
 - `docs/iot-software-team-collaboration-guidelines.md` — Bản Markdown ĐẦY ĐỦ của Quy chế PDF (489 dòng) → **đọc bản này thay PDF**
-- `docs/Industrial_Park_Technical_Report.pdf` — bản gốc PDF 30 trang (chỉ giữ làm nguồn)
-- `docs/IoT_Software_Team_Collaboration_Guidelines.pdf` — bản gốc PDF 22 trang (chỉ giữ làm nguồn)
 - `docs/project-overview-pdr.md` — PDR: mục tiêu, stakeholders, phạm vi, yêu cầu
 - `docs/codebase-summary.md` — Index repo: cấu trúc, từng tài liệu, quan hệ
 - `docs/project-roadmap.md` — Roadmap A/B/C + timeline ĐV3 + 5 giai đoạn phần mềm + gates
 
 ### Sơ đồ kiến trúc
-- `docs/diagrams/overall-hybrid-architecture.{drawio,png}` — Tổng thể 2 nền tảng
-- `docs/diagrams/cloud-platform-architecture.{drawio,png}` — Chi tiết cloud
-- `docs/diagrams/on-premise-platform-architecture.{drawio,png}` — Chi tiết on-prem
-- **Export PNG:** `drawio -x -f png -s 2 -o out.png input.drawio`
+- `docs/diagrams/overall-hybrid-architecture.mmd` — Tổng thể 2 nền tảng
+- `docs/diagrams/cloud-platform-architecture.mmd` — Chi tiết cloud
+- `docs/diagrams/on-premise-platform-architecture.mmd` — Chi tiết on-prem
+- **Định dạng:** Mermaid v11 `flowchart LR` + subgraph (validated mermaid@11.16.0)
 
 ### Quy hoạch & báo cáo
 - `docs/journals/260722-brainstorm-production-infra-architecture-decisions.md` — Journal quyết định
@@ -52,9 +50,8 @@ Hướng dẫn cho AI assistant làm việc trong repo docs-only này.
 ### ⚠️ Đọc file an toàn
 - **KHÔNG Read trực tiếp:**
   - `docs/POC_architecture.md` (600KB base64)
-  - `docs/TechStack_Pipeline.docx.md` (237K tokens base64)
-  - `docs/Industrial_Park_Technical_Report.pdf` (30 trang)
-  - `docs/IoT_Software_Team_Collaboration_Guidelines.pdf` (22 trang)
+  - `docs/tech-stack-pipeline.md` (237K tokens base64)
+  - `docs/archive/*`
 - **Thay thế:** Dùng `grep`, hoặc strip text (nếu cần trích dẫn chi tiết).
 
 ### Kiến trúc STICKY
@@ -73,10 +70,11 @@ Hướng dẫn cho AI assistant làm việc trong repo docs-only này.
 - **Lưu ý:** Tuân thủ `.claude/rules/*.md` từ repo này (development-rules, primary-workflow, code-standards, etc.)
 
 ### Diagram chỉnh sửa & export
-- File nguồn: `.drawio` (draw.io XML format)
-- Mở tại: https://app.diagrams.net/ (upload file)
-- Export PNG: `drawio -x -f png -s 2 -o output.png input.drawio` (2x resolution)
-- Lưu cả `.drawio` và `.png` trong `docs/diagrams/`
+- File nguồn: `.mmd` (Mermaid v11, `flowchart LR` + subgraph)
+- Preview: GitHub/GitLab render trực tiếp, hoặc https://mermaid.live
+- Export PNG/SVG khi cần: `mmdc -i input.mmd -o output.png -s 2` (@mermaid-js/mermaid-cli)
+- Quy ước: `==>` luồng dữ liệu chính · nét đứt đỏ = downlink/điều khiển ngược · nét đứt xám = replication/standby
+- Lưu `.mmd` trong `docs/diagrams/`
 
 ### Commits & Docs sync
 - Conventional commit format (no emoji, no plan refs in code)

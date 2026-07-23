@@ -103,14 +103,15 @@ Hợp nhất 5 giai đoạn từ tài liệu TechStack_Pipeline (9 tháng):
 
 ---
 
-## Trạng thái hiện tại (2026-07-22)
+## Trạng thái hiện tại (2026-07-23)
 
 ✓ **Hoàn tất:** Thiết kế kiến trúc (7 quyết định D1-D7 đã chốt)
 ✓ **Hoàn tất:** PDR (yêu cầu chức năng + phi chức năng)
 ✓ **Hoàn tất:** Roadmap 3 phase
 ✓ **Hoàn tất:** Sơ đồ kiến trúc (diagrams)
+✓ **Hoàn tất (2026-07-23):** POC Phase 1 foundation on-prem (Go monolith + Docker Compose, E2E verified)
 
-⏳ **Chưa bắt đầu:** Phase A (landing zone) — sắp start tháng 8
+⏳ **Chưa bắt đầu:** Phase A (landing zone) — sắp start tháng 8/2026 (after POC insights)
 
 ---
 

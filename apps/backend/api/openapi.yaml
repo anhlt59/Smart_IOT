@@ -1,0 +1,427 @@
+openapi: 3.0.3
+info:
+  title: IIoT POC On-Premise API
+  description: >
+    Contract skeleton for the POC modular monolith (role api). Frozen early so
+    backend and web UI teams develop in parallel; fields may be extended
+    (never renamed/removed) via team review. REST returns persisted shapes
+    (Alarm, Command); WebSocket pushes event shapes (TelemetryPoint,
+    AlarmEvent, CommandStateEvent) — see x-websocket at the bottom.
+  version: 0.1.0
+servers:
+  - url: /api/v1
+tags:
+  - {name: auth}
+  - {name: devices}
+  - {name: telemetry}
+  - {name: alarms}
+  - {name: commands}
+  - {name: cameras}
+
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Login with username/password, returns JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/LoginRequest'}
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LoginResponse'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Current authenticated user
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /devices:
+    get:
+      tags: [devices]
+      summary: List devices (registry populated by the device module)
+      parameters:
+        - {name: subsys, in: query, schema: {type: string}, description: "Filter by subsystem, e.g. wastewater"}
+        - {name: q, in: query, schema: {type: string}, description: Free-text search on name}
+      responses:
+        '200':
+          description: Device list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Device'}
+
+  /devices/{deviceId}:
+    get:
+      tags: [devices]
+      summary: Device detail
+      parameters:
+        - {$ref: '#/components/parameters/DeviceId'}
+      responses:
+        '200':
+          description: Device
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Device'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /devices/{deviceId}/telemetry:
+    get:
+      tags: [telemetry]
+      summary: Telemetry history (raw or aggregated)
+      parameters:
+        - {$ref: '#/components/parameters/DeviceId'}
+        - {name: metric, in: query, required: true, schema: {type: string}}
+        - {name: from, in: query, required: true, schema: {type: string, format: date-time}}
+        - {name: to, in: query, required: true, schema: {type: string, format: date-time}}
+        - {name: agg, in: query, schema: {type: string, enum: [raw, 1m, 1h, 1d], default: raw}}
+      responses:
+        '200':
+          description: Time-ordered points
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/TelemetryPoint'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /telemetry/last:
+    get:
+      tags: [telemetry]
+      summary: Last value per device/metric (Redis last-value cache)
+      parameters:
+        - {name: device_id, in: query, required: true, schema: {type: string}}
+        - {name: metric, in: query, schema: {type: string}, description: Omit for all metrics of the device}
+      responses:
+        '200':
+          description: Latest points
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/TelemetryPoint'}
+
+  /alarms:
+    get:
+      tags: [alarms]
+      summary: List alarms
+      parameters:
+        - {name: state, in: query, schema: {type: string, enum: [open, acked, closed]}}
+        - {name: severity, in: query, schema: {type: string, enum: [info, warning, critical]}}
+        - {name: device_id, in: query, schema: {type: string}}
+        - {name: limit, in: query, schema: {type: integer, default: 50, maximum: 500}}
+        - {name: offset, in: query, schema: {type: integer, default: 0}}
+      responses:
+        '200':
+          description: Alarms, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [total, items]
+                properties:
+                  total: {type: integer}
+                  items:
+                    type: array
+                    items: {$ref: '#/components/schemas/Alarm'}
+
+  /alarms/{alarmId}/ack:
+    post:
+      tags: [alarms]
+      summary: Acknowledge an open alarm (operator/admin)
+      parameters:
+        - {name: alarmId, in: path, required: true, schema: {type: integer, format: int64}}
+      responses:
+        '200':
+          description: Acked alarm
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Alarm'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {description: Alarm not in open state}
+
+  /commands/catalog:
+    get:
+      tags: [commands]
+      summary: Whitelisted commands (only these can be dispatched)
+      responses:
+        '200':
+          description: Command catalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/CommandCatalogEntry'}
+
+  /commands:
+    post:
+      tags: [commands]
+      summary: Dispatch a downlink command (operator/admin, audited)
+      description: >
+        Async with correlation — returns 202 with the command in pending
+        state; progress (sent/acked/failed/timeout) is pushed on WebSocket
+        channel rt:command and via GET /commands/{commandId}.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CommandRequest'}
+      responses:
+        '202':
+          description: Accepted for dispatch
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Command'}
+        '400': {description: Command not in whitelist or invalid params}
+        '409':
+          description: Duplicate idempotency_key — returns the existing command
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Command'}
+
+  /commands/{commandId}:
+    get:
+      tags: [commands]
+      summary: Command state (poll fallback for WebSocket)
+      parameters:
+        - {name: commandId, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: Command
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Command'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /cameras:
+    get:
+      tags: [cameras]
+      summary: List cameras
+      responses:
+        '200':
+          description: Cameras
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Camera'}
+
+  /cameras/{cameraId}/stream:
+    get:
+      tags: [cameras]
+      summary: Live stream URLs (MediaMTX relay, WebRTC/HLS)
+      parameters:
+        - {name: cameraId, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: Stream endpoints for the web player
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CameraStream'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+
+  parameters:
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema: {type: string}
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: {type: string, example: not_found}
+        message: {type: string}
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: {type: string}
+        password: {type: string, format: password}
+
+    LoginResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token: {type: string, description: JWT bearer token}
+        expires_at: {type: string, format: date-time}
+        user: {$ref: '#/components/schemas/User'}
+
+    User:
+      type: object
+      required: [id, username, role]
+      properties:
+        id: {type: integer, format: int64}
+        username: {type: string}
+        role: {type: string, enum: [admin, operator, viewer]}
+
+    Device:
+      type: object
+      required: [id, name, subsys, node]
+      properties:
+        id: {type: string}
+        gateway_id: {type: string}
+        subsys: {type: string, example: wastewater}
+        node: {type: string}
+        name: {type: string}
+        type: {type: string, example: sensor}
+        unit: {type: string, example: mg/L}
+        meta: {type: object, additionalProperties: true}
+        last_seen: {type: string, format: date-time, nullable: true}
+
+    TelemetryPoint:
+      type: object
+      description: Matches internal/events.TelemetryPoint — REST last/history and WS push share this shape.
+      required: [device_id, metric, value, ts]
+      properties:
+        device_id: {type: string}
+        gateway_id: {type: string}
+        subsys: {type: string, example: wastewater}
+        node: {type: string}
+        metric: {type: string}
+        value: {type: number, format: double}
+        quality: {type: string, enum: [good, bad, uncertain]}
+        backfill: {type: boolean, description: Replayed from gateway buffer}
+        seq: {type: integer, format: int64, minimum: 0}
+        ts: {type: string, format: date-time, description: Device-side NTP timestamp}
+
+    Alarm:
+      type: object
+      required: [id, rule_id, device_id, severity, state, opened_at]
+      properties:
+        id: {type: integer, format: int64}
+        rule_id: {type: integer, format: int64}
+        device_id: {type: string}
+        metric: {type: string}
+        severity: {type: string, enum: [info, warning, critical]}
+        state: {type: string, enum: [open, acked, closed]}
+        peak_value: {type: number, format: double}
+        opened_at: {type: string, format: date-time}
+        acked_by: {type: string, nullable: true}
+        acked_at: {type: string, format: date-time, nullable: true}
+        closed_at: {type: string, format: date-time, nullable: true}
+
+    CommandCatalogEntry:
+      type: object
+      required: [command, device_id, title]
+      properties:
+        command: {type: string, example: lighting_1_on}
+        device_id: {type: string}
+        title: {type: string, example: "Bật đèn lộ 1"}
+        params_schema: {type: object, additionalProperties: true, description: JSON schema of allowed params (PTZ etc.)}
+
+    CommandRequest:
+      type: object
+      required: [command, device_id, idempotency_key]
+      properties:
+        command: {type: string, description: Must exist in the whitelist catalog}
+        device_id: {type: string}
+        params: {type: object, additionalProperties: true}
+        idempotency_key: {type: string, description: Client-generated UUID; duplicates return the original command}
+
+    Command:
+      type: object
+      required: [id, command, device_id, status, requested_by, created_at]
+      properties:
+        id: {type: string}
+        command: {type: string}
+        device_id: {type: string}
+        params: {type: object, additionalProperties: true}
+        status: {type: string, enum: [pending, sent, acked, failed, timeout]}
+        idempotency_key: {type: string}
+        requested_by: {type: string, description: Username (audit trail)}
+        created_at: {type: string, format: date-time}
+        acked_at: {type: string, format: date-time, nullable: true}
+        detail: {type: string, nullable: true}
+
+    Camera:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        location: {type: string}
+        enabled: {type: boolean}
+
+    CameraStream:
+      type: object
+      required: [camera_id]
+      properties:
+        camera_id: {type: string}
+        webrtc_url: {type: string, example: "http://<host>:8889/cam01/whep"}
+        hls_url: {type: string, example: "http://<host>:8888/cam01/index.m3u8"}
+
+    AlarmEvent:
+      type: object
+      description: WS push payload on rt:alarm — matches internal/events.AlarmEvent (state transition, NOT the persisted Alarm shape).
+      required: [alarm_id, rule_id, device_id, severity, state, ts]
+      properties:
+        alarm_id: {type: integer, format: int64}
+        rule_id: {type: integer, format: int64}
+        device_id: {type: string}
+        metric: {type: string}
+        severity: {type: string, enum: [info, warning, critical]}
+        state: {type: string, enum: [open, acked, closed]}
+        value: {type: number, format: double, description: Measurement that triggered the transition}
+        ts: {type: string, format: date-time}
+
+    CommandStateEvent:
+      type: object
+      description: WS push payload on rt:command — matches internal/events.CommandState (transition, NOT the persisted Command shape).
+      required: [command_id, device_id, command, status, ts]
+      properties:
+        command_id: {type: string}
+        device_id: {type: string}
+        command: {type: string}
+        status: {type: string, enum: [pending, sent, acked, failed, timeout]}
+        idempotency_key: {type: string}
+        actor: {type: string, description: Username that issued the command}
+        detail: {type: string}
+        ts: {type: string, format: date-time}
+
+security:
+  - bearerAuth: []
+
+# Realtime WebSocket contract (documented here; not part of OpenAPI paths).
+# Endpoint: GET /api/v1/ws?token=<JWT>
+# Client subscribes: {"subscribe": {"channels": ["rt:telemetry","rt:alarm","rt:command"], "device_ids": ["..."], "subsys": "..."}}
+# Server pushes: {"channel": "<channel>", "data": <payload per table below>}
+x-websocket:
+  path: /api/v1/ws
+  channels:
+    rt:telemetry: '#/components/schemas/TelemetryPoint'
+    rt:alarm: '#/components/schemas/AlarmEvent'
+    rt:command: '#/components/schemas/CommandStateEvent'

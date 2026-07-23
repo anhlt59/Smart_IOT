@@ -1,0 +1,118 @@
+---
+title: Cloud Platform Architecture — VNPT Cloud (Region 1 · Production)
+---
+flowchart LR
+    USERS["Người dùng<br/>Web · Mobile · Open API<br/>HTTPS · OIDC"]
+    SITES["On-Premise Sites ×N<br/>MPLS/L3VPN primary<br/>+ Internet IPsec backup"]
+
+    subgraph ING["INGRESS LAYER"]
+        LB7["VNPT LB L7 + WAAP<br/>HTTPS :443<br/>chỉ Web/API public"]
+        APIGW["API Gateway<br/>routing · rate limit · JWT verify"]
+        LB4["VNPT LB L4<br/>MQTT mTLS :8883"]
+        VPNGW["VPN / MPLS Gateway<br/>private peering"]
+    end
+
+    subgraph VKS["VNPT VKS PROD — node pools app / ingest / data-NVMe · HPA · PDB · NetworkPolicy deny-by-default"]
+        subgraph MSG["MESSAGING"]
+            EMQX["EMQX Cluster ×3<br/>MQTT Broker · ACL theo cert · session"]
+            KAFKA["Kafka (managed · RF3)<br/>topic theo domain · replay 3–7 ngày"]
+        end
+        subgraph CORE["CORE SERVICES — Go microservices · shared multi-tenant"]
+            API["API Service<br/>REST/WS · tenant context (JWT)"]
+            REG["Device Registry<br/>Fleet Management"]
+            INGEST["Ingest<br/>normalize · validate · schema check"]
+            RULE["Rule Engine · Alarm consumer ≤ 2s<br/>multi-channel notify"]
+            KC["Keycloak<br/>IAM · OIDC · RBAC · 2FA TOTP"]
+            TMP["Temporal<br/>onboarding site · workflow phê duyệt"]
+        end
+        CH["ClickHouse ×2 replicas + 3 Keeper<br/>data-pool NVMe · database per tenant<br/>TTL raw 30 ngày / aggregate 1 năm"]
+        subgraph OBS["MONITORING · LOGGING"]
+            LGTM["Grafana · Mimir (metrics 13 tháng)<br/>Loki (logs 90 ngày)"]
+            AM["Alertmanager + OnCall<br/>SLA P1–P4 → Telegram · email"]
+        end
+        subgraph SEC["SECURITY"]
+            VAULT["Vault<br/>PKI device certs (mTLS · rotation · CRL)<br/>secrets · ESO"]
+            ISO["Tenant isolation<br/>PG RLS · EMQX ACL · NetworkPolicy<br/>isolation test trong CI"]
+        end
+        subgraph MGMT["MGMT / CI-CD — subnet mgmt"]
+            GIT["GitLab self-host<br/>+ runners"]
+            ARGO["Argo CD — GitOps<br/>manual gate PROD"]
+            TF["Terraform — IaC<br/>state có lock"]
+            BAST["Bastion / ZTNA<br/>1 cửa quản trị · session log"]
+        end
+    end
+
+    subgraph DB["DATABASE LAYER — VNPT Managed"]
+        PG["PostgreSQL HA<br/>metadata · alarm lifecycle<br/>audit · PostGIS"]
+        REDIS["Redis<br/>cache · last-value · session"]
+        OS["Object Storage (S3)<br/>snapshot sự kiện · footage evidence<br/>backup immutable + versioning"]
+    end
+
+    subgraph DR["BACKUP & DISASTER RECOVERY"]
+        BK["pgBackRest (WAL + full)<br/>clickhouse-backup · Velero<br/>bucket IMMUTABLE · restore test hàng tháng"]
+        R2["REGION 2 (HCM) — WARM STANDBY<br/>PG replica async · OS replication<br/>IaC re-deploy full stack<br/>RPO 5–15 phút · RTO 1–2 giờ · DR drill mỗi quý"]
+    end
+
+    USERS -->|"HTTPS"| LB7
+    LB7 --> APIGW
+    APIGW -->|"REST / WebSocket"| API
+    APIGW -.->|"OIDC · JWT"| KC
+    SITES ==>|"UPLINK — MQTT mTLS<br/>telemetry · event · alarm · backfill"| LB4
+    SITES -->|"HTTPS — backup · snapshot pre-signed → Object Storage<br/>metrics/logs remote_write → LGTM"| VPNGW
+    LB4 ==> EMQX
+    EMQX ==>|"persist"| KAFKA
+    KAFKA ==>|"consume"| INGEST
+    KAFKA -->|"topic events.alarm"| RULE
+    INGEST ==>|"ghi time-series"| CH
+    INGEST -->|"last-value"| REDIS
+    RULE -->|"alarm lifecycle"| PG
+    API -->|"query"| CH
+    API -->|"metadata · audit"| PG
+    TMP -.->|"onboard: cert · ACL · schema · dashboard"| REG
+    LGTM --> AM
+    API -.->|"remote command<br/>2FA · RBAC · audit"| KAFKA
+    KAFKA -.->|"topic commands"| EMQX
+    EMQX -.->|"DOWNLINK — config · OTA · command<br/>whitelist · ack ≤ 5s"| SITES
+    PG -->|"backup"| BK
+    CH -->|"backup"| BK
+    BK -.->|"replicate"| R2
+    OS -.->|"cross-region replication"| R2
+
+    linkStyle 17,18,19 stroke:#cc0000,color:#cc0000
+    linkStyle 22,23 stroke:#666666,color:#666666
+
+    classDef user fill:#ffffff,stroke:#666666,color:#000000
+    classDef site fill:#f8cecc,stroke:#b85450,color:#000000
+    classDef ingress fill:#ffffff,stroke:#d79b00,color:#000000
+    classDef msgN fill:#ffffff,stroke:#d79b00,color:#000000
+    classDef coreN fill:#ffffff,stroke:#82b366,color:#000000
+    classDef tsdb fill:#fff2cc,stroke:#d6b656,color:#000000
+    classDef obsN fill:#ffffff,stroke:#666666,color:#000000
+    classDef secN fill:#ffffff,stroke:#9673a6,color:#000000
+    classDef mgmtN fill:#ffffff,stroke:#666666,color:#000000
+    classDef dbN fill:#ffffff,stroke:#d6b656,color:#000000
+    classDef drN fill:#ffffff,stroke:#666666,color:#000000
+    classDef standby fill:#ffffff,stroke:#6c8ebf,color:#666666,stroke-dasharray:6 4
+
+    class USERS user
+    class SITES site
+    class LB7,APIGW,LB4,VPNGW ingress
+    class EMQX,KAFKA msgN
+    class API,REG,INGEST,RULE,KC,TMP coreN
+    class CH tsdb
+    class LGTM,AM obsN
+    class VAULT,ISO secN
+    class GIT,ARGO,TF,BAST mgmtN
+    class PG,REDIS,OS dbN
+    class BK drN
+    class R2 standby
+
+    style ING fill:#ffe6cc,stroke:#d79b00
+    style VKS fill:#dae8fc,stroke:#6c8ebf
+    style MSG fill:#fff8f0,stroke:#d79b00
+    style CORE fill:#d5e8d4,stroke:#82b366
+    style OBS fill:#f5f5f5,stroke:#666666
+    style SEC fill:#e1d5e7,stroke:#9673a6
+    style MGMT fill:#ffffff,stroke:#666666,stroke-dasharray:6 4
+    style DB fill:#fff2cc,stroke:#d6b656
+    style DR fill:#f5f5f5,stroke:#666666

@@ -1,0 +1,24 @@
+# MediaMTX camera relay — RTSP in, HLS/WebRTC out for the web UI.
+# Camera paths are registered by the camera module (control API or this file).
+logLevel: info
+
+api: yes
+apiAddress: :9997
+
+rtsp: yes
+rtspAddress: :8554
+
+hls: yes
+hlsAddress: :8888
+
+webrtc: yes
+webrtcAddress: :8889
+webrtcLocalUDPAddress: :8189
+
+rtmp: no
+srt: no
+
+paths:
+  # Allow ad-hoc test publishers during development, e.g.:
+  #   ffmpeg -re -stream_loop -1 -i sample.mp4 -c copy -f rtsp rtsp://localhost:8554/cam-test
+  all_others:

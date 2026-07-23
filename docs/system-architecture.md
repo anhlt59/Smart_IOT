@@ -2,6 +2,7 @@
 
 **Version:** 1.0 · 2026-07-22 · Trạng thái: Đã duyệt (3 quyết định kiến trúc chốt 2026-07-22)
 **Phân tích đầy đủ (gaps/alternatives/trade-offs):** `plans/reports/brainstorm-260722-1457-production-infra-architecture-vnpt-cloud-hybrid-report.md`
+**DDD Bounded Context Map (application layer, POC → Production):** `docs/ddd-bounded-context-map.md` (2026-07-24)
 **Tài liệu nguồn:** `docs/description.md`, `docs/POC_architecture.md`, `docs/TechStack_Pipeline.docx.md`, `docs/Industrial_Park_Technical_Report.pdf`, `docs/IoT_Software_Team_Collaboration_Guidelines.pdf`
 
 ---
@@ -74,7 +75,7 @@ Nền tảng quản lý vận hành tập trung cho nhiều khu công nghiệp (
 
 ## 3. Edge / On-Premise (cố định theo ĐV3)
 
-> Sơ đồ (draw.io + PNG trong `docs/diagrams/`): `overall-hybrid-architecture` · `cloud-platform-architecture` · `on-premise-platform-architecture`
+> Sơ đồ (Mermaid `.mmd` trong `docs/diagrams/`): `overall-hybrid-architecture` · `cloud-platform-architecture` · `on-premise-platform-architecture`
 
 **Hardware (BOM cố định):** 9 tủ IoT ECU-1051 (Modbus RTU/TCP⇄MQTT, SD buffer 30 ngày, 4 tủ kèm 4G EG25-G), ADAM-3600 datalogger (TT 10/2021, ISO 27001), 2× Edge AI Box Jetson Orin, FortiGate 80F, server room: 2× Dell R660xs (app) + R760xs (data) + HPE DL380 GPU 48GB (AI) + NVR + 2× UPS 6kVA. OT read-only; điều khiển ngược chỉ: 9 lộ chiếu sáng + PTZ camera.
 

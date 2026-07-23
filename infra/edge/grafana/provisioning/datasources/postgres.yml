@@ -1,0 +1,16 @@
+# Ops datasource: the same PG/TimescaleDB the app writes to.
+# ${VAR} values are interpolated from the container environment.
+apiVersion: 1
+
+datasources:
+  - name: IoT PostgreSQL
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    user: grafana_ro # read-only role, created by postgres/initdb
+    jsonData:
+      database: ${POSTGRES_DB}
+      sslmode: disable
+      timescaledb: true
+    secureJsonData:
+      password: ${GRAFANA_RO_PASSWORD}

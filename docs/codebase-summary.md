@@ -1,6 +1,6 @@
 # Codebase Summary — Industrial IoT Platform
 
-**Loại repo:** Docs-only (design phase) · **Trạng thái:** Thiết kế xong, chưa code
+**Loại repo:** Design + POC on-prem implementation · **Trạng thái:** Thiết kế xong (v1.0); POC Phase 1 foundation hoàn tất 2026-07-23
 
 ---
 
@@ -9,7 +9,29 @@
 ```
 Smart_IOT/
 ├── README.md                                  # Giới thiệu dự án, danh mục tài liệu, roadmap
+├── Makefile                                   # Dev workflow: up/down/ps/logs/build/test/lint/migrate
 ├── CLAUDE.md                                  # Hướng dẫn AI assistant
+├── apps/
+│   └── backend/                               # Go 1.26 modular monolith (POC Phase 1)
+│       ├── cmd/app/                           # Single binary: --role=api|ingest|worker|all
+│       ├── internal/
+│       │   ├── config/                        # Env-based config
+│       │   ├── events/                        # Event bus (channels rt:telemetry|alarm|command)
+│       │   └── app/                           # Lifecycle + /healthz
+│       ├── api/openapi.yaml                   # Frozen contract (auth, devices, telemetry, alarms, commands, cameras + WS)
+│       ├── migrations/                        # golang-migrate: 0001_users + seed admin (gitignored .env)
+│       └── Dockerfile                         # Multi-stage build
+├── infra/
+│   └── edge/                                  # Docker Compose on-prem (POC Phase 1)
+│       ├── docker-compose.yml                 # 7 containers: timescaledb 2.17.2, emqx 5.8.4, redis 7.4.2, mediamtx 1.11.3, grafana 11.4.0, app-api, app-worker
+│       ├── emqx/                              # Auth bootstrap CSV, file ACL least-privilege, durable_sessions
+│       ├── postgres/                          # initdb: timescaledb ext + grafana_ro read-only role
+│       ├── grafana/                           # Provisioning + datasources
+│       ├── mediamtx.yml                       # RTSP/HLS/WebRTC server config
+│       ├── migrate/                           # golang-migrate one-shot setup
+│       └── .env.example                       # Template (real .env + users CSV gitignored)
+├── .github/
+│   └── workflows/ci.yml                       # Go build/vet/test -race + golangci-lint + compose config validation
 ├── docs/
 │   ├── description.md                         # Mô tả 2 nền tảng (94 dòng)
 │   ├── system-architecture.md                 # Kiến trúc v1.0: 7 quyết định D1-D7 (251 dòng)
@@ -24,12 +46,9 @@ Smart_IOT/
 │   ├── iot-software-team-collaboration-guidelines.md # Bản Markdown của Quy chế PDF (489 dòng)
 │   ├── images/                                # 10 figure extract từ 2 PDF (PNG)
 │   └── diagrams/
-│       ├── overall-hybrid-architecture.drawio     # Tổng thể 2 nền tảng (XML)
-│       ├── overall-hybrid-architecture.png        # Export PNG 2x
-│       ├── cloud-platform-architecture.drawio     # Chi tiết cloud (XML)
-│       ├── cloud-platform-architecture.png        # Export PNG 2x
-│       ├── on-premise-platform-architecture.drawio # Chi tiết on-prem (XML)
-│       └── on-premise-platform-architecture.png   # Export PNG 2x
+│       ├── overall-hybrid-architecture.mmd        # Tổng thể 2 nền tảng (Mermaid v11)
+│       ├── cloud-platform-architecture.mmd        # Chi tiết cloud (Mermaid v11)
+│       └── on-premise-platform-architecture.mmd   # Chi tiết on-prem (Mermaid v11)
 ├── docs/journals/
 │   └── 260722-brainstorm-production-infra-architecture-decisions.md # Journal quyết định
 └── plans/
@@ -58,9 +77,9 @@ Smart_IOT/
 | `docs/industrial-park-technical-report.md` | Bản Markdown đầy đủ của Technical Report PDF: 30 page marker, 32 bảng, 7 hình + 1 mermaid | 794 dòng | Chuyển đổi 2026-07-23 | Đọc bản này thay PDF |
 | `docs/iot-software-team-collaboration-guidelines.md` | Bản Markdown đầy đủ của Quy chế PDF: 22 page marker, 17 bảng, 3 hình + 2 mermaid | 489 dòng | Chuyển đổi 2026-07-23 | Đọc bản này thay PDF |
 | `docs/images/` | 10 figure PNG extract từ 2 PDF (7 technical-report + 3 collab-guidelines) | 10 file | Chuyển đổi 2026-07-23 | Tham chiếu bởi 2 bản md |
-| `docs/diagrams/overall-hybrid-architecture.*` | Sơ đồ tổng thể: cloud + on-prem + MPLS/backup | 2 file (drawio + PNG 2x) | Mới | Mở draw.io tại app.diagrams.net |
-| `docs/diagrams/cloud-platform-architecture.*` | Sơ đồ chi tiết cloud: VPC, VKS pools, managed services, Kafka, ClickHouse, Keycloak, LGTM | 2 file (drawio + PNG 2x) | Mới | Export PNG: `drawio -x -f png -s 2 -o out.png in.drawio` |
-| `docs/diagrams/on-premise-platform-architecture.*` | Sơ đồ chi tiết on-prem: VLAN (OT/IT/DMZ), Docker Compose, IOC, EMQX bridge, NVR, AI | 2 file (drawio + PNG 2x) | Mới | Hardware ĐV3 cố định (D1) |
+| `docs/diagrams/overall-hybrid-architecture.mmd` | Sơ đồ tổng thể: cloud + on-prem + MPLS/backup | Mermaid v11 flowchart LR | 2026-07-23 | Preview: mermaid.live hoặc GitHub render |
+| `docs/diagrams/cloud-platform-architecture.mmd` | Sơ đồ chi tiết cloud: ingress, VKS pools, managed services, Kafka, ClickHouse, Keycloak, LGTM | Mermaid v11 flowchart LR | 2026-07-23 | Export PNG: `mmdc -i in.mmd -o out.png -s 2` |
+| `docs/diagrams/on-premise-platform-architecture.mmd` | Sơ đồ chi tiết on-prem: VLAN (OT/IT/DMZ), Docker Compose, IOC, EMQX bridge, NVR, AI | Mermaid v11 flowchart LR | 2026-07-23 | Hardware ĐV3 cố định (D1) |
 | `docs/journals/260722-brainstorm-production-infra-architecture-decisions.md` | Journal: quyết định 7 quyết định (log thảo luận, lý do chọn) | Mở rộng | Nguồn | Audit trail kiến trúc |
 | `plans/reports/brainstorm-260722-1457-production-infra-architecture-vnpt-cloud-hybrid-report.md` | Báo cáo phân tích: 12 chủ đề (cloud provider, serverless, managed vs self-host, cell vs shared, K8s on-prem, DR warm vs active-active, etc.) + trade-offs, gaps, alternatives | Mở rộng | Đã duyệt | Trace quyết định → D1-D7 |
 
@@ -105,7 +124,12 @@ Smart_IOT/
 
 ## Ghi chú
 
-- **Repo hiện tại:** Docs-only, chưa có application code
-- **Next:** Phase A (0–3 tháng) landing zone → code implementation
+- **POC Phase 1 (2026-07-23):** On-prem monolith foundation verified E2E (Go backend + Docker Compose 7 containers: timescaledb, emqx, redis, mediamtx, grafana, app-api, app-worker)
+  - Backend role model: `--role=api|ingest|worker|all` single binary
+  - Event bus: in-process channels (rt:telemetry, rt:alarm, rt:command) + Redis pub/sub bridge
+  - API contract: openapi.yaml (auth, devices, telemetry, alarms, commands, cameras + WS payload mapping)
+  - Port layout: MQTT 1883, EMQX 18083, Grafana 3000, API 8080, RTSP 8554, HLS 8888, WebRTC 8889 (open); PG/Redis loopback-only
+  - Bootstrap: `make up` → .env auto-gen + emqx users.csv + seed admin to PG
+- **Next:** Phase A (landing zone) = cloud VKS + managed services (after POC insights)
 - **Docs update:** Nếu có code change → sync docs tương ứng (docs-manager agent)
-- **Diagram edit:** Mở file `.drawio` tại https://app.diagrams.net/ → export PNG 2x
+- **Diagram edit:** Sửa `.mmd` (Mermaid v11) → preview tại https://mermaid.live hoặc `mmdc -i in.mmd -o out.png -s 2`

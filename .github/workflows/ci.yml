@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    paths: ["apps/backend/**", "infra/edge/**", ".github/workflows/ci.yml"]
+  pull_request:
+    paths: ["apps/backend/**", "infra/edge/**", ".github/workflows/ci.yml"]
+
+defaults:
+  run:
+    working-directory: apps/backend
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/backend/go.mod
+          cache-dependency-path: apps/backend/go.sum
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          # linter version follows the action default ("latest") so it always
+          # supports the Go toolchain pinned in go.mod; Docker images stay
+          # pinned, the linter is CI-only tooling
+          working-directory: apps/backend
+
+  compose-validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose config with templated env
+        run: |
+          cp infra/edge/.env.example infra/edge/.env
+          cp infra/edge/emqx/users-bootstrap.csv.example infra/edge/emqx/users-bootstrap.csv
+          docker compose -f infra/edge/docker-compose.yml --env-file infra/edge/.env config --quiet
